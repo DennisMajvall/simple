@@ -1,6 +1,9 @@
 (()=>{
-  renderer.addComponentName(HelloComponent.name);
-  renderer.addComponentName(WorldComponent.name);
+  console.time('lol');
+  Component.registerComponent(BodyComponent);
+  Component.registerComponent(HelloComponent);
+  Component.registerComponent(WorldComponent);
 
-  new HelloComponent();
+  new BodyComponent();
+  console.timeEnd('lol');
 })();

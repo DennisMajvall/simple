@@ -1,9 +1,7 @@
 class WorldComponent extends Component {
-  constructor() { super();
-    this.lol = 'world';
-  }
 
   async init(){
+    this.lol = 'world';
     console.log('world init');
   }
 
@@ -11,10 +9,10 @@ class WorldComponent extends Component {
     console.log('world load');
   }
 
-  template(){
+  static template(){
     console.log('world template');
     return `
-      <h1>world</h1>
+      <h2>world</h2>
     `
   }
 }
