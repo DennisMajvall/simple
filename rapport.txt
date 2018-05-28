@@ -1,0 +1,21 @@
+convert html strings to instantiable classes
+
+In older versions of Javascript all classes were accessible through window['className'];
+Newer versions of JavaScript (ES6?) stores classes in a global scope but not accessible through any object.
+Currently The only two solutions to this problem are:
+- eval(className);
+- window[className] = class;
+
+The first option lets us dynamically instantiate any class whenever we want to, it's drawback however is using eval which has slow performance and is considered unsafe. It being considered unsafe has put pressure on many Servers, their action has most of the time therefore been to forbid it being used at all. This is a strong argument for us not to use eval in our frontend libraries as we would like to support most servers.
+
+Our second and only other option requires us to manually register each and every class in a scoped object in order to access them dynamically with a string later on.
+This can be done in 2 ways:
+- Changing the class syntax of components.
+- Calling a function once per component-class.
+
+The first option goes against this framework's goal of being as close to native and simple as possible.
+
+The second option doesn't force the user to change his/her syntax and only adds an extra function-call which can be done from anywhere in our startup code execution, it also gives us a centralized location for registering all class-names.
+(This is the way-to-go for many modern frontend libraries).
+Manually doing this is fairly easy but we should be able to automate part of this process by having a backend-process process our frontend files and accumulate a list of classnames.
+Automating it gives us some restrictions: All component-classes must be stored in one or more pre-determined folder-locations. Storing all component-classes in the same location helps keep the project-files organized and is therefore not considered a big drawback.
