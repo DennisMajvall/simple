@@ -5,24 +5,13 @@ class Component {
     this.uniqueId = Component.uniqueId++;
     Component.mem[this.uniqueId] = this;
 
-    setTimeout(async ()=>{
+    this.initTimeout = setTimeout(async ()=>{
       await this.waitForFunction('init');
       await this.waitForFunction('load');
     }, 0);
 
-    // return p;
-  }
 
-  async waitForFunction(name){
-    const p = this[name]();
-    p instanceof Promise && await p;
     return p;
-  }
-
-  async waitForFunctions(...names){
-    for(let name of names){
-      await this.waitForFunction(name);
-    }
   }
 
   async init(){}
@@ -78,6 +67,18 @@ class Component {
     // TODO: Performance comparison
     Component.components.classNames.push(aClass.name);
     // console.log('added component:', aClass.name);
+  }
+
+  async waitForFunction(name){
+    const p = this[name]();
+    p instanceof Promise && await p;
+    return p;
+  }
+
+  async waitForFunctions(...names){
+    for(let name of names){
+      await this.waitForFunction(name);
+    }
   }
 }
 Component.uniqueId = 0;

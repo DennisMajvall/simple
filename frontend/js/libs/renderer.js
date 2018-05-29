@@ -1,10 +1,4 @@
 class Renderer {
-  constructor(){
-    this.dom = [];
-    this.renderQueue = [];
-    this.renderedHtml = [];
-  }
-
   render(component){
     let tags = component.constructor.template;
     // console.log('render tags', tags);
