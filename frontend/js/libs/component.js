@@ -1,24 +1,27 @@
 class Component {
   constructor(){
-    // let p = new Proxy(this, this.getProxyHandler());
+
+
+    const proxy = new Proxy(this, Component.proxyHandler());
 
     this.uniqueId = Component.uniqueId++;
-    Component.mem[this.uniqueId] = this;
+    Component.mem[this.uniqueId] = proxy;
 
-    this.initTimeout = setTimeout(async ()=>{
-      await this.waitForFunction('init');
-      await this.waitForFunction('load');
+    proxy.renderListeners = {};
+
+    proxy.initTimeout = setTimeout(async ()=>{
+      await proxy.waitForFunction('init');
+      await proxy.waitForFunction('load');
     }, 0);
 
-
-    return p;
+    return proxy;
   }
 
   async init(){}
   async load(){}
   static template(){}
 
-  getProxyHandler() { return {
+  static proxyHandler() { return {
     get: (target, property, reciever)=>{
       // if(property == '__nonproxied__'){
       //   return target;
@@ -38,14 +41,17 @@ class Component {
     set: (target, propertyKey, value, reciever)=>{
       const isSameValue = value === Reflect.get(target,propertyKey,reciever);
       if (isSameValue) { return true; }
-      // if(target instanceof Component){
-        // this.currentComp = target;
-      // }
-      // this.toUpdate = this.toUpdate || [];
-      // this.currentComp && this.toUpdate.indexOf(this.currentComp)<0 && this.toUpdate.push(this.currentComp);
-      // clearTimeout(this.updateTimeout);
-      // this.updateTimeout = setTimeout(()=>{this.update()},0);
-      return Reflect.set(target, propertyKey, value, reciever);
+
+      const success = Reflect.set(target, propertyKey, value, reciever);
+
+      const a = target.renderListeners;
+      if (a.hasOwnProperty(propertyKey)) {
+        for (let update of a[propertyKey]) {
+          update();
+        }
+      }
+
+      return success;
     }
   }}
 

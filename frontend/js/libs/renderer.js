@@ -1,5 +1,6 @@
 class Renderer {
   render(component){
+    let that = this;
     let tags = component.constructor.template;
     // console.log('render tags', tags);
     if (tags.length === undefined) { tags = [tags]; }
@@ -30,23 +31,15 @@ class Renderer {
       const el = document.createElement(tag.tagName);
 
       for (let name in tag.attributes) {
-        el.setAttribute(name, tag.attributes[name]);
+        const attrVal = tag.attributes[name].trim();
+        that.setUpAttributeListeners(el, component, attrVal, name);
       }
 
       for (let tChild of tag.children) {
         el.appendChild(createNode(tChild, el));
       }
 
-      const cIndex = Component.components.templateNames.indexOf(tag.tagName);
-      if (~cIndex) {
-        const newComponent = new Component.components.classes[cIndex]();
-        const parentNr = component.htmlNode.dataset['componentId'];
-
-        newComponent.parentComponent = Component.mem[parentNr];
-        newComponent.htmlNode = el;
-        childComponents.push(newComponent);
-      }
-
+      that.createComponentIfNeeded(tag, el, component, childComponents);
 
       return parent.appendChild(el);
     }
@@ -55,6 +48,42 @@ class Renderer {
       // console.log('rendering child', childComponent);
       renderer.render(childComponent)
     }
+  }
+
+  updateAttribute(el, component, name, varName){
+    el.setAttribute(name, component[varName] || '');
+  }
+
+  setUpAttributeListeners(el, component, attrVal, name){
+    el.setAttribute(name, attrVal);
+    if (!attrVal.includes('this.')) { return; }
+
+    if (attrVal.startsWith('this.')) {
+      const varName = attrVal.slice((5));
+      const arr = component.renderListeners[varName] = component.renderListeners[varName] || [];
+      arr.push(()=>{
+        el.setAttribute(name, component[varName] || '');
+      });
+      if (component[varName]) {
+        el.setAttribute(name, component[varName]);
+      }
+    } else {
+      console.log('includes this:', attrVal);
+    }
+  }
+
+  createComponentIfNeeded(tag, el, component, childComponents){
+    const cIndex = Component.components.templateNames.indexOf(tag.tagName);
+    ~cIndex && this.createComponent(tag, el, component, cIndex, childComponents);
+  }
+
+  createComponent(tag, el, component, cIndex, childComponents){
+    const newComponent = new Component.components.classes[cIndex]();
+    const parentNr = component.htmlNode.dataset['componentId'];
+
+    newComponent.parentComponent = Component.mem[parentNr];
+    newComponent.htmlNode = el;
+    childComponents.push(newComponent);
   }
 
   convertTemplateToDOM(html, isFirst = false){
