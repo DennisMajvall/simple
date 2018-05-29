@@ -25,7 +25,7 @@ class Renderer {
 
     function createNode(tag, parent){
       if (typeof tag == 'string') {
-        return parent.appendChild(document.createTextNode(tag));
+        return parent.appendChild(that.setUpTextListeners(parent, tag));
       }
 
       const el = document.createElement(tag.tagName);
@@ -48,6 +48,17 @@ class Renderer {
       // console.log('rendering child', childComponent);
       renderer.render(childComponent)
     }
+  }
+
+  setUpTextListeners(component, tag, parent){
+    const el = document.createTextNode(tag);
+    return el;
+
+    if (!attrVal.includes('this.')) { return el; }
+
+    const varName = attrVal.slice((5));
+    const arr = component.renderListeners[varName] = component.renderListeners[varName] || [];
+    arr.push(this.updateAttribute.bind(this, el, component, name, varName));
   }
 
   updateAttribute(el, component, name, varName){
