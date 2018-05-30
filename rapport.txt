@@ -1,21 +1,75 @@
-convert html strings to instantiable classes
+Instantiating component-classes from html strings
 
-In older versions of Javascript all classes were accessible through window['className'];
+In older versions of JavaScript all classes were accessible through window['className'];
 Newer versions of JavaScript (ES6?) stores classes in a global scope but not accessible through any object.
-Currently The only two solutions to this problem are:
-- eval(className);
-- window[className] = class;
 
-The first option lets us dynamically instantiate any class whenever we want to, it's drawback however is using eval which has slow performance and is considered unsafe. It being considered unsafe has put pressure on many Servers, their action has most of the time therefore been to forbid it being used at all. This is a strong argument for us not to use eval in our frontend libraries as we would like to support most servers.
+Currently the only two solutions to this problem are:
+A: eval(className);
+B: window[className] = class;
 
-Our second and only other option requires us to manually register each and every class in a scoped object in order to access them dynamically with a string later on.
+Option A lets us dynamically instantiate any class whenever we want to, it's drawback however is using eval which has slow performance and is considered unsafe. It being considered unsafe has put pressure on many Servers, their action has most of the time therefore been to forbid it being used at all. This is a strong argument for us not to use eval in our frontend libraries as we would like to support most servers.
+
+Our only other option B, requires us to manually register each and every class in a scoped object in order to access them dynamically with a string later on.
 This can be done in 2 ways:
-- Changing the class syntax of components.
-- Calling a function once per component-class.
+A: Changing the class syntax of components.
+B: Calling a function once per component-class.
 
-The first option goes against this framework's goal of being as close to native and simple as possible.
+Option A goes against this framework's goal of being as close to native and simple as possible.
 
-The second option doesn't force the user to change his/her syntax and only adds an extra function-call which can be done from anywhere in our startup code execution, it also gives us a centralized location for registering all class-names.
+Option B doesn't force the user to change his/her syntax and only adds an extra function-call which can be done from anywhere in our startup code execution, it also gives us a centralized location for registering all class-names.
 (This is the way-to-go for many modern frontend libraries).
 Manually doing this is fairly easy but we should be able to automate part of this process by having a backend-process process our frontend files and accumulate a list of classnames.
 Automating it gives us some restrictions: All component-classes must be stored in one or more pre-determined folder-locations. Storing all component-classes in the same location helps keep the project-files organized and is therefore not considered a big drawback.
+
+
+Letting components be part of the DOM
+In our frontend framework we accompany each of our components with some HTML, this HTML should have a clear connection with it's component in order to share data back and fourth.
+This gives us different options of how to express and store the html.
+
+Some of the ways of storing this would be:
+A: Storing the component's native DOM-tree in a variable of the component, modifying it directly from the component's class.
+B: Storing it in a multiline string-variable of the class.
+C: Storing it in a separate file and attaching it to the correct class in a similar way to registering component-names.
+
+These different options present their own pros (+) and cons (-)
+A:
+  + Very easy to implement.
+  - Very bothersome for the user to manage and would require him/her to have advanced knowledge of DOM-manipulation in JavaScript.
+
+B:
+  + Easy to find a component's belonging HTML-code since it's located in the same file as the class.
+  + Native HTML doesn't force the user to go out of their way learning how to write it.
+  - Large pieces of HTML stored in the same file as the JavaScript will bother the user with scrolling and searching-behaviour even when they're not modifying the HTML.
+  - No syntax-highlighting of HTML.
+
+C:
+  + Large pieces of HTML won't disturb the user when working on the JavaScript.
+  + Native HTML.
+  - Small pieces of HTML (the most common type) will make it bothersome for the user because they have to "open and switch between several different files" when working on a single component.
+
+For the different ways of expressing the HTML in our components
+A: Native HTML.
+B: Native HTML with additions such as symbols for inserting values from JavaScript.
+C: Creating a JavaScript API acting as a facade for DOM-Nodes with the help of objects and functions.
+D: HTML is based on XML, but we are not forced to do the same, we could express our DOM-tree in other languages such as JSON, Visual Nodes, LaTeX or even sheet music.
+E: Not having a DOM-tree represented as a tree of nodes at all but instead incorporating the DOM as part of the JavaScript coding environment.
+
+A:
+  + All our users already know HTML well.
+  - Modifying the DOM with values from our components gets very bothersome due to amount of code needed and it forces the user to know a JavaScript API for DOM-manipulation.
+
+B:
+  + All our users already know HTML well and our additions won't affect that part.
+  + With good syntax this won't force the user to learn many new things and if our additions are very close to native that would make it even easier.
+  - With bad syntax this will make our framework very hard to learn and possibly bothersome to use.
+
+C:
+  + The performance cost of this in comparison to regular DOM-nodes is tiny in both CPU & memory usage.
+  + The structure would look somewhat similar to native HTML even though nodes would be created using a function and later be represented as objects.
+  + The process of modifying nodes becomes easier as it would closer align to regular JavaScript coding and we could integrate already existing classes such as Proxy into our nodes.
+  - It would force the user to learn a completely new syntax.
+  - As JavaScript is very dynamic and the DOM-tree is not this could cause problems as we would lack the static typing validation that's appreciated when writing markup.
+
+D:   Coming up with a good replacement for HTML is outside the scope of this report.
+  + This has unlimited potential and might make the act of writing HTML a long-forgotten thing.
+  - Users would have to learn a new language.
