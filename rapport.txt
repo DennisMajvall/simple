@@ -47,41 +47,52 @@ C:
   + Native HTML.
   - Small pieces of HTML (the most common type) will make it bothersome for the user because they have to "open and switch between several different files" when working on a single component.
 
+For our simple framework I have chosen option B for storing HTML-code.
+
 For the different ways of expressing the HTML in our components
-A: Native HTML.
-B: Native HTML with additions such as symbols for inserting values from JavaScript.
-C: Creating a JavaScript API acting as a facade for DOM-Nodes with the help of objects and functions.
-D: HTML is based on XML, but we are not forced to do the same, we could express our DOM-tree in other languages such as JSON, Visual Nodes, LaTeX or even sheet music.
-E: Not having a DOM-tree represented as a tree of nodes at all but instead incorporating the DOM as part of the JavaScript coding environment.
+A: Native HTML with no javascript involved.
+B: Native HTML with template literals inserting values from JavaScript.
+C: Native HTML with additions such as symbols for inserting values from JavaScript.
+D: Creating a JavaScript API acting as a facade for DOM-Nodes with the help of objects and functions.
+E: HTML is based on XML, but we are not forced to do the same, we could express our DOM-tree in other languages such as JSON, Visual Nodes, LaTeX or even sheet music.
+F: Not having a DOM-tree represented as a tree of nodes at all but instead incorporating the DOM as part of the JavaScript coding environment.
 
 A:
   + All our users already know HTML well.
+  + Practically no development time needed.
   - Modifying the DOM with values from our components gets very bothersome due to amount of code needed and it forces the user to know a JavaScript API for DOM-manipulation.
 
 B:
-  + All our users already know HTML well and our additions won't affect that part.
-  + With good syntax this won't force the user to learn many new things and if our additions are very close to native that would make it even easier.
-  - With bad syntax this will make our framework very hard to learn and possibly bothersome to use.
+  + All our users already know HTML and template literals.
+  + Very low development time compared to all other options involving javascript.
+  - Having to write ${} around every variable and executable piece of code in our templates may be considered bothersome boilerplate code.
 
 C:
+  + All our users already know HTML well and our additions won't affect that part.
+  + We can choose for this syntax to be very easy to use.
+  + With good syntax this won't force the user to learn many new things and if our additions are very close to native that would make it even easier.
+  - With bad syntax this will make our framework very hard to learn and possibly bothersome to use.
+  - It requires increased development time as we have to parse what parts of the strings are executable code.
+
+D:
   + The performance cost of this in comparison to regular DOM-nodes is tiny in both CPU & memory usage.
   + The structure would look somewhat similar to native HTML even though nodes would be created using a function and later be represented as objects.
   + The process of modifying nodes becomes easier as it would closer align to regular JavaScript coding and we could integrate already existing classes such as Proxy into our nodes.
   - It would force the user to learn a completely new syntax.
   - As JavaScript is very dynamic and the DOM-tree is not this could cause problems as we would lack the static typing validation that's appreciated when writing markup.
 
-D:  Coming up with a good replacement for HTML is outside the scope of this work.
+E:  Coming up with a good replacement for HTML is outside the scope of this work.
   + This has unlimited potential and might make the act of writing HTML a long-forgotten thing.
   - Users would have to learn a new language.
 
-E:  Coming up with a good replacement for having a DOM-Tree structure is outside the scope of this work.
+F:  Coming up with a good replacement for having a DOM-Tree structure is outside the scope of this work.
   + This has unlimited potential and might make the act of writing HTML a long-forgotten thing.
   + Chances are high that having a tree-like structure for the DOM is not the best way of managing a component-based website.
   - Users would have to learn and adjust to a new way of thinking about how to interact with the DOM.
 
 
-For our simple framework I have chosen option B for storing HTML-code and option B for managing the cooperation between JavaScript and HTML. The syntax I've chosen for binding data to the HTML is simply writing "this.variableName" since it's the most natural way for a modern JS programmer to express themselves with variables. The negative impact of not being able to write "this.something" where the intention is to NOT insert the variable named "something" is non-existant since grammar forces you to put a space between dots and new sentences. For applications where the text is not natural language grammar don't apply, this doesn't cause a major problem either as the chances of the user wanting to write "this." before the next word is practically non-existant as well.
+For our simple framework I have chosen option B for storing HTML-code and option B for managing the cooperation between JavaScript and HTML. At first I went for option C for template-javascript but due to the low development time at hand had to switch over to option B.
 
-TO BE DECIDED
+For Option C the syntax I chose for binding data to the HTML is simply writing "this.variableName" since it's the most natural way for a modern JS programmer to express themselves with variables. The negative impact of not being able to write "this.something" where the intention is NOT to insert the variable named "something" is non-existant since grammar forces you to put a space between dots and new sentences. For applications where the text is not natural language, grammar doesn't apply, I considered that a minor issue as the chances of the user wanting to write "this." before the next word is practically non-existant as well.
 Lastly, if the "this.variable" isn't found in the component's class, undefined will be printed in it's place as this will better notify the developer of possible bugs in his/her code.
-
+The development code needed for making "this.variable" accessible in html-attributes and TextNodes wasn't too big but it quickly became complex when I tried to incorporate the parsing of function calls, the iterator symbol, conditional operators and nested objects. With more development time I would continue using Option C as it gives the best benefits contra development-time.
