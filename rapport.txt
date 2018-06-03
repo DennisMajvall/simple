@@ -70,6 +70,18 @@ C:
   - It would force the user to learn a completely new syntax.
   - As JavaScript is very dynamic and the DOM-tree is not this could cause problems as we would lack the static typing validation that's appreciated when writing markup.
 
-D:   Coming up with a good replacement for HTML is outside the scope of this report.
+D:  Coming up with a good replacement for HTML is outside the scope of this work.
   + This has unlimited potential and might make the act of writing HTML a long-forgotten thing.
   - Users would have to learn a new language.
+
+E:  Coming up with a good replacement for having a DOM-Tree structure is outside the scope of this work.
+  + This has unlimited potential and might make the act of writing HTML a long-forgotten thing.
+  + Chances are high that having a tree-like structure for the DOM is not the best way of managing a component-based website.
+  - Users would have to learn and adjust to a new way of thinking about how to interact with the DOM.
+
+
+For our simple framework I have chosen option B for storing HTML-code and option B for managing the cooperation between JavaScript and HTML. The syntax I've chosen for binding data to the HTML is simply writing "this.variableName" since it's the most natural way for a modern JS programmer to express themselves with variables. The negative impact of not being able to write "this.something" where the intention is to NOT insert the variable named "something" is non-existant since grammar forces you to put a space between dots and new sentences. For applications where the text is not natural language grammar don't apply, this doesn't cause a major problem either as the chances of the user wanting to write "this." before the next word is practically non-existant as well.
+
+TO BE DECIDED
+Lastly, if the "this.variable" isn't found in the component's class, undefined will be printed in it's place as this will better notify the developer of possible bugs in his/her code.
+
