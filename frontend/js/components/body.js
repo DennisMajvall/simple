@@ -2,6 +2,7 @@ class BodyComponent extends Component {
 
   async init(){
     this.lol = 'one';
+    this.lola = { a: { b: 'a_one_a' } };
 
     setTimeout(()=>{
       this.lol = 'two';

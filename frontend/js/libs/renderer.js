@@ -52,7 +52,7 @@ class Renderer {
   }
 
   getVariablesFromText(fullText){
-    const thisRegexp = /this(\.[a-zA-Z]{1}[a-zA-Z_\d\(\)\[\]]*)+/g;
+    const thisRegexp = /this(\.[a-zA-Z]{1}[a-zA-Z_\d]*)+/g;
     let foundMatch = thisRegexp.exec(fullText);
 
     const textNodes = [];
@@ -78,7 +78,7 @@ class Renderer {
       const el = document.createTextNode(t);
 
       if (t.startsWith('this.')) {
-        const varName = t.slice((5));
+        const varNames = t.slice(5);
         const listeners = component.renderListeners;
         listeners[varName] = listeners[varName] || [];
 
