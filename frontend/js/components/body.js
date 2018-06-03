@@ -19,9 +19,11 @@ class BodyComponent extends Component {
   static template(){
     return `
       <div id="yo">
-        bodytext
+        2abc this.lol def ghi this.lol this.5okay this..ok! jkl
+        <input value="hejsan this.lol" style="display:block;">
         <input value="this.lol" style="display:block;">
         <hello> yeah </hello>
+        <hello> this.lol </hello>
       </div>
     `
   }

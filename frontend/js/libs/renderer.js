@@ -25,7 +25,8 @@ class Renderer {
 
     function createNode(tag, parent){
       if (typeof tag == 'string') {
-        return parent.appendChild(that.setUpTextListeners(parent, tag));
+        that.appendTextNodes(tag, parent, component);
+        return;
       }
 
       const el = document.createElement(tag.tagName);
@@ -36,12 +37,12 @@ class Renderer {
       }
 
       for (let tChild of tag.children) {
-        el.appendChild(createNode(tChild, el));
+        createNode(tChild, el);
       }
 
       that.createComponentIfNeeded(tag, el, component, childComponents);
 
-      return parent.appendChild(el);
+      parent.appendChild(el);
     }
 
     for (let childComponent of childComponents) {
@@ -50,19 +51,43 @@ class Renderer {
     }
   }
 
-  setUpTextListeners(component, tag, parent){
-    const el = document.createTextNode(tag);
-    return el;
+  getVariablesFromText(fullText){
+    const thisRegexp = /this(\.[a-zA-Z]{1}[a-zA-Z_\d\(\)\[\]]*)+/g;
+    let foundMatch = thisRegexp.exec(fullText);
 
-    if (!attrVal.includes('this.')) { return el; }
+    const textNodes = [];
+    let i = 0;
 
-    const varName = attrVal.slice((5));
-    const arr = component.renderListeners[varName] = component.renderListeners[varName] || [];
-    arr.push(this.updateAttribute.bind(this, el, component, name, varName));
+    while (foundMatch != null) {
+      let textPreMatch = fullText.substring(i, foundMatch.index);
+      textNodes.push(textPreMatch);
+      i = thisRegexp.lastIndex;
+
+      textNodes.push(foundMatch[0]);
+      foundMatch = thisRegexp.exec(fullText);
+    }
+
+    textNodes.push(fullText.substr(i));
+    return textNodes;
   }
 
-  updateAttribute(el, component, name, varName){
-    el.setAttribute(name, component[varName] || '');
+  appendTextNodes(fullText, parent, component){
+    const textNodes = this.getVariablesFromText(fullText);
+
+    for (let t of textNodes) {
+      const el = document.createTextNode(t);
+
+      if (t.startsWith('this.')) {
+        const varName = t.slice((5));
+        const listeners = component.renderListeners;
+        listeners[varName] = listeners[varName] || [];
+
+        listeners[varName].push(()=>{ el.nodeValue = component[varName] });
+        el.nodeValue = component[varName];
+      }
+
+      parent.appendChild(el);
+    }
   }
 
   setUpAttributeListeners(el, component, attrVal, name){
@@ -71,13 +96,11 @@ class Renderer {
 
     if (attrVal.startsWith('this.')) {
       const varName = attrVal.slice((5));
-      const arr = component.renderListeners[varName] = component.renderListeners[varName] || [];
-      arr.push(()=>{
-        el.setAttribute(name, component[varName] || '');
-      });
-      if (component[varName]) {
-        el.setAttribute(name, component[varName]);
-      }
+      const listeners = component.renderListeners;
+      listeners[varName] = listeners[varName] || [];
+
+      listeners[varName].push(()=>{ el.setAttribute(name, component[varName]); });
+      if (component[varName]) { el.setAttribute(name, component[varName]); }
     } else {
       console.log('includes this:', attrVal);
     }
