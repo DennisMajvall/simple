@@ -7,7 +7,7 @@ Currently the only two solutions to this problem are:
 A: eval(className);
 B: window[className] = class;
 
-Option A lets us dynamically instantiate any class whenever we want to, it's drawback however is using eval which has slow performance and is considered unsafe. It being considered unsafe has put pressure on many Servers, their action has most of the time therefore been to forbid it being used at all. This is a strong argument for us not to use eval in our frontend libraries as we would like to support most servers.
+Option A lets us dynamically instantiate any class whenever we want to, it's drawback however is using eval which has slow performance and is considered unsafe. It being considered unsafe has put pressure on many servers, their action has most of the time therefore been to forbid it being used at all. This is a strong argument for us not to use eval in our frontend libraries as we would like to support most servers.
 
 Our only other option B, requires us to manually register each and every class in a scoped object in order to access them dynamically with a string later on.
 This can be done in 2 ways:

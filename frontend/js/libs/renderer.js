@@ -78,7 +78,7 @@ class Renderer {
       const el = document.createTextNode(t);
 
       if (t.startsWith('this.')) {
-        const varNames = t.slice(5);
+        const varName = t.slice(5);
         const listeners = component.renderListeners;
         listeners[varName] = listeners[varName] || [];
 
