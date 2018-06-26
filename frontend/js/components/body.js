@@ -19,10 +19,14 @@ class BodyComponent extends Component {
 
   static template(){
     return `
-      <div id="first"></div>
+      <div id="first">
+        lite text här ja
+      </div>
+      <div id="first">
+        hej1${this.lol}då2
+      </div>
       <div id="yo" data-hej="ok" somethingElse="other" cool="${this.lol}">
         <input value="${this.lol}" style="display:block;">
-        <h4>a ${this.lol} b</h4>
       </div>
     `
     // return `

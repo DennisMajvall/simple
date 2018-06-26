@@ -121,47 +121,83 @@ class Renderer {
     childComponents.push(newComponent);
   }
 
-  convertTemplateToDOM(templateFunc, isFirst = false){
+  parseOneNode(el, result){
+    el.nodeValue && (el.nodeValue = el.nodeValue.trim());
+    const v = el.nodeValue;
 
+    if (el.nodeType == 3){
+      if (!v) {
+        el.remove();
+      } else if (v.includes('{{') && v.includes('}}')) {
+        const thisRegexp = /(.*?)(\{\{.*?\}\})/g;
+        let foundMatch = thisRegexp.exec(v);
+        let textNodes = [];
+        let i = 0;
+
+        while (foundMatch != null) {
+          console.log('foundMatch', foundMatch);
+          i = thisRegexp.lastIndex;
+          foundMatch[1] && textNodes.push(foundMatch[1]);
+          foundMatch[2] && textNodes.push(foundMatch[2]);
+          foundMatch = thisRegexp.exec(v);
+        }
+        const after = i > 0 ? v.substring(i, v.length) : '';
+        if (after) { textNodes.push(after); }
+
+        console.log('done', textNodes);
+        const tnLen = textNodes.length;
+        if (tnLen > 1) {
+          el.nodeValue = textNodes[tnLen-1];
+          for (let i = 0; i < tnLen - 1; ++i) {
+            el.parentNode.insertBefore(document.createTextNode(textNodes[i]), el);
+          }
+        }
+
+        console.log(tnLen, 'parent', el.parentNode);
+
+        // const startsAt = v.indexOf('{{');
+        // const endsAt = v.indexOf('}}');
+
+        // if (startsAt > 0) {
+        // }
+
+        result.push(el);
+      }
+      return;
+    }
+
+    const aLen = el.attributes.length;
+    for (let i = 0; i < aLen; ++i) {
+      const a = el.attributes[i];
+      if (a.nodeValue.includes('{{') && a.nodeValue.includes('}}')) {
+        result.push(a);
+      }
+    }
+
+    const cLen = el.childNodes.length;
+    for (let i = cLen - 1; i >= 0; --i) {
+      this.parseOneNode(el.childNodes[i], result);
+    }
+
+    return result;
+  }
+
+  convertTemplateToDOM(templateFunc){
     let html = templateFunc.toString();
-    html = html.substring(11,html.length-1).replace(/\$\{(.*)\}/g, '{{$1}}');
+    html = html.substring(11, html.length - 1).replace(/\$\{(.*?)\}/g, '{{$1}}');
     html = (new Function(html))();
 
     console.log('html', html);
     let elements = $(html);
-
-    elements =
+    let results = [];
 
     elements.each((i, el)=>{
-      const result = {};
-
-      if (el.nodeType == 3 && !el.nodeValue.trim()){
-        elements[i] = null;
-        return;
-      }
-
-      result.attributes = [].slice.call(el.attributes || {})
-        .reduce(function(map, obj) {
-          map[obj.nodeName || obj.name] = obj.nodeValue || obj.value;
-          return map;
-        }, {});
-      console.log('i', i, 'el', el, 'res', result);
-
-
-      // result.children = [].slice.call(el.childNodes)
-      //   .map((n)=>{
-      //     if (n.nodeType == 1) {
-      //       return this.convertTemplateToDOM(n, true);
-      //     }
-      //     return n.nodeType == 3 && n.nodeValue.trim() || null;
-      //   })
-      //   .filter(n=>n);
-
-      elements[i] = result;
+      this.parseOneNode(el, results);
     });
     elements = elements.toArray().filter(el=>el);
 
-    console.log('els', elements)
+    console.log('elements', elements)
+    console.log('results', results)
 
     // !isFirst && console.log('elements', elements.toArray());
     // if (elements.length == 1) { elements = elements[0]; }
