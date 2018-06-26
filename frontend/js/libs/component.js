@@ -63,7 +63,7 @@ class Component {
     .replace(/Component$/, '')
     .toSnakeCase();
 
-    aClass.template = renderer.convertTemplateToDOM(aClass.template());
+    aClass.template = renderer.convertTemplateToDOM(aClass.template);
 
     Component.components.templateNames.push(templateName);
     Component.components.classes.push(aClass);

@@ -1,6 +1,5 @@
 class Renderer {
   render(component){
-    return;
     let that = this;
     let tags = component.constructor.template;
     // console.log('render tags', tags);
@@ -121,50 +120,40 @@ class Renderer {
     childComponents.push(newComponent);
   }
 
-  convertTemplateToDOM(templateFunc, isFirst = false){
-
-    let html = templateFunc.toString();
-    html = html.substring(11,html.length-1).replace(/\$\{(.*)\}/g, '{{$1}}');
-    html = (new Function(html))();
-
-    console.log('html', html);
+  convertTemplateToDOM(html, isFirst = false){
     let elements = $(html);
-
-    elements =
 
     elements.each((i, el)=>{
       const result = {};
 
-      if (el.nodeType == 3 && !el.nodeValue.trim()){
-        elements[i] = null;
+      if (el.nodeType == 3 && !el.nodeValue.trim()) {
+        elements[i] = false;
         return;
       }
+
+      result.tagName = el.nodeType == 1 && el.tagName.toLowerCase() || 'span';
 
       result.attributes = [].slice.call(el.attributes || {})
         .reduce(function(map, obj) {
           map[obj.nodeName || obj.name] = obj.nodeValue || obj.value;
           return map;
         }, {});
-      console.log('i', i, 'el', el, 'res', result);
 
-
-      // result.children = [].slice.call(el.childNodes)
-      //   .map((n)=>{
-      //     if (n.nodeType == 1) {
-      //       return this.convertTemplateToDOM(n, true);
-      //     }
-      //     return n.nodeType == 3 && n.nodeValue.trim() || null;
-      //   })
-      //   .filter(n=>n);
+      result.children = [].slice.call(el.childNodes)
+        .map((n)=>{
+          if (n.nodeType == 1) {
+            return this.convertTemplateToDOM(n, true);
+          }
+          return n.nodeType == 3 && n.nodeValue.trim() || null;
+        })
+        .filter(n=>n);
 
       elements[i] = result;
     });
-    elements = elements.toArray().filter(el=>el);
-
-    console.log('els', elements)
 
     // !isFirst && console.log('elements', elements.toArray());
-    // if (elements.length == 1) { elements = elements[0]; }
+    elements = elements.toArray().filter(el=>el);
+    if (elements.length == 1) { elements = elements[0]; }
     return elements;
   }
 }
