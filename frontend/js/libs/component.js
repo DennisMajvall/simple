@@ -9,27 +9,11 @@ class Component {
 
     proxy.initTimeout = setTimeout(async ()=>{
       await proxy.waitForFunction('init');
-      this.replaceElementInDOM(elementToReplace);
+      renderer.render(this, elementToReplace);
       await proxy.waitForFunction('load'); // await needed for the last one?
     });
 
     return proxy;
-  }
-
-  replaceElementInDOM(){
-    let classNode = this.constructor.template;
-    var str = '<a href="http://www.com">item to replace</a>'; //it can be anything
-    var Obj = document.getElementById('TargetObject'); //any element to be fully replaced
-    if(Obj.outerHTML) { //if outerHTML is supported
-        Obj.outerHTML=str; ///it's simple replacement of whole element with contents of str var
-    }
-    else { //if outerHTML is not supported, there is a weird but crossbrowsered trick
-        var tmpObj=document.createElement("div");
-        tmpObj.innerHTML='<!--THIS DATA SHOULD BE REPLACED-->';
-        ObjParent=Obj.parentNode; //Okey, element should be parented
-        ObjParent.replaceChild(tmpObj,Obj); //here we placing our temporary data instead of our target, so we can find it then and replace it into whatever we want to replace to
-        ObjParent.innerHTML=ObjParent.innerHTML.replace('<div><!--THIS DATA SHOULD BE REPLACED--></div>',str);
-    }
   }
 
   async init(){}
@@ -72,7 +56,7 @@ class Component {
 
   static registerComponent(aClass){
     // TODO? Also allow js-objects instead of only ES6 classes
-    if (Component.components.classNames.includes(aClass.name)){ return false; }
+    if (Component.components.classes.includes(aClass)){ return false; }
 
     const templateName = aClass.name
     .replace(/Component$/, '')
@@ -83,10 +67,6 @@ class Component {
     Component.components.templateNames.push(templateName);
     Component.components.classes.push(aClass);
 
-    // Storing the class-name is abundant but increases debuggability
-    // and might make the lookup-process of a class a tiny bit quicker.
-    // TODO: Performance comparison
-    Component.components.classNames.push(aClass.name);
     // console.log('added component:', aClass.name);
   }
 
@@ -98,4 +78,4 @@ class Component {
 }
 Component.uniqueId = 0;
 Component.mem = {};
-Component.components = { templateNames: [], classNames: [], classes: [] };
+Component.components = { templateNames: [], classes: [] };

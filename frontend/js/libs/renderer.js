@@ -1,54 +1,86 @@
 class Renderer {
 
-  appendTextNodes(fullText, parent, component){
-    const textNodes = this.getVariablesFromText(fullText);
+  render(instance, elementToReplace){
+    const nodes = instance.constructor.template;
+    instance.htmlNodes = [];
 
-    for (let t of textNodes) {
-      const el = document.createTextNode(t);
-
-      if (t.startsWith('this.')) {
-        const varName = t.slice(5);
-        const listeners = component.renderListeners;
-        listeners[varName] = listeners[varName] || [];
-
-        listeners[varName].push(()=>{ el.nodeValue = component[varName] });
-        el.nodeValue = component[varName];
+    const fixNodes = (i) => {
+      instance.htmlNodes[i] = nodes[i].cloneNode(true);
+      if (nodes[i].nodeType == Node.ELEMENT_NODE) {
+        instance.htmlNodes[i].dataset['componentId'] = instance.uniqueId;
       }
+      this.parseListeners(nodes[i], instance.htmlNodes[i], instance);
+    }
 
-      parent.appendChild(el);
+    for(let i = 0; i < nodes.length; ++i) {
+      fixNodes(i);
+      i == 0
+        ? elementToReplace.parentNode.replaceChild(instance.htmlNodes[i], elementToReplace)
+        : instance.htmlNodes[i-1].parentNode.insertBefore(instance.htmlNodes[i], instance.htmlNodes[i-1].nextSibling); // inserts after
     }
   }
 
-  setUpAttributeListeners(el, component, attrVal, name){
-    el.setAttribute(name, attrVal);
-    if (!attrVal.includes('this.')) { return; }
+  parseListeners(src, dst, instance){
 
-    if (attrVal.startsWith('this.')) {
-      const varName = attrVal.slice((5));
-      const listeners = component.renderListeners;
-      listeners[varName] = listeners[varName] || [];
+    if (src.isListener) {
+      if (src.nodeType == Node.TEXT_NODE) {
+        const varName = src.nodeValue.slice(src.nodeValue.indexOf('this.') + 5);
+        dst.nodeValue = instance[varName];
+        if (!instance.disableWarnings && !instance[varName]) {
+          dst.nodeValue = `[undefined: ${varName}]`;
+          console.warn(`Rendered an undefined variable "${varName}" in a textNode. element:`, dst.parentNode.cloneNode(true));
+        }
+        instance.renderListeners[varName] = instance.renderListeners[varName] || [];
+        instance.renderListeners[varName].push(()=>{ dst.nodeValue = instance[varName] });
+      } else if (src.nodeType == Node.ELEMENT_NODE) {
+        const aLen = src.attributes.length;
+        for (let i = 0; i < aLen; ++i) {
+          const a = src.attributes[i];
 
-      listeners[varName].push(()=>{ el.setAttribute(name, component[varName]); });
-      if (component[varName]) { el.setAttribute(name, component[varName]); }
-    } else {
-      console.log('includes this:', attrVal);
+          if (a.isListener) {
+            const v = "`" + a.nodeValue.replace(/\{\{/g, '${').replace(/\}\}/g, '}') + "`";
+
+            const thisRegexp = /(this.)([a-zA-Z0-9]*)/g;
+            let foundMatch = thisRegexp.exec(v);
+            let variableNames = [];
+            while (foundMatch != null) {
+              const varName = foundMatch[2];
+              if (varName) {
+                variableNames.push(varName);
+                if (varName && !instance[varName] && !instance.disableWarnings) {
+                  console.warn(`Rendered an undefined variable "${varName}" in the attribute "${a.name}" of element:`, dst.cloneNode(true));
+                }
+              }
+              foundMatch = thisRegexp.exec(v);
+            }
+
+            changeThisScope.bind(instance)();
+            function changeThisScope(){
+              dst.setAttribute(a.name, eval(v));
+              for(let vn of variableNames) {
+                this.renderListeners[vn] = this.renderListeners[vn] || [];
+                this.renderListeners[vn].push(()=>{ dst.setAttribute(a.name, eval(v)); });
+              }
+            }
+          }
+        }
+      }
+    }
+
+    for(let i = 0; i < src.childNodes.length; ++i) {
+      this.parseListeners(src.childNodes[i], dst.childNodes[i], instance);
     }
   }
 
-  createComponent(tag, el, component, cIndex, childComponents){
-    const newComponent = new Component.components.classes[cIndex]();
-    const parentNr = component.htmlNode.dataset['componentId'];
+  parseOneNode(el){
+    if (el.nodeType != Node.ELEMENT_NODE && el.nodeType != Node.TEXT_NODE) {
+      return;
+    }
 
-    newComponent.parentComponent = Component.mem[parentNr];
-    newComponent.htmlNode = el;
-    childComponents.push(newComponent);
-  }
-
-  parseOneNode(el, result){
     el.nodeValue && (el.nodeValue = el.nodeValue.trim());
     const v = el.nodeValue;
 
-    if (el.nodeType == 3){
+    if (el.nodeType == Node.TEXT_NODE){
       if (!v) {
         el.remove();
       } else if (v.includes('{{') && v.includes('}}')) {
@@ -67,15 +99,22 @@ class Renderer {
         const after = i > 0 ? v.substring(i, v.length) : '';
         if (after) { textNodes.push(after); }
 
-        console.log('split textNodes', textNodes);
+        // console.log('split textNodes', textNodes);
         const tnLen = textNodes.length;
         if (tnLen > 1) {
           el.nodeValue = textNodes[tnLen-1];
+          if (el.nodeValue.startsWith('{{') && el.nodeValue.endsWith('}}')) {
+            el.nodeValue = el.nodeValue.slice(2, el.nodeValue.length-2)
+            el.isListener = true;
+          }
+
           for (let i = 0; i < tnLen - 1; ++i) {
             let textNode = document.createTextNode(textNodes[i]);
             el.parentNode.insertBefore(textNode, el);
-            if (textNode.nodeValue.includes('{{')) {
-              result.push(textNode);
+            const text = textNode.nodeValue;
+            if (text.startsWith('{{') && text.endsWith('}}')) {
+              textNode.nodeValue = text.slice(2, text.length-2)
+              textNode.isListener = true;
             }
           }
         }
@@ -86,17 +125,17 @@ class Renderer {
     const aLen = el.attributes.length;
     for (let i = 0; i < aLen; ++i) {
       const a = el.attributes[i];
-      if (a.nodeValue.includes('{{') && a.nodeValue.includes('}}')) {
-        result.push(a);
+      const text = a.nodeValue;
+      if (text.includes('{{') && text.includes('}}')) {
+        el.attributes[i].isListener = true;
+        el.isListener = true;
       }
     }
 
     const cLen = el.childNodes.length;
     for (let i = cLen - 1; i >= 0; --i) {
-      this.parseOneNode(el.childNodes[i], result);
+      this.parseOneNode(el.childNodes[i]);
     }
-
-    return result;
   }
 
   convertTemplateToDOM(componentClass){
@@ -104,17 +143,15 @@ class Renderer {
     html = html.substring(11, html.length - 1).replace(/\$\{(.*?)\}/g, '{{$1}}');
     html = (new Function(html))();
 
-    console.log('html', html);
+    // console.log('html', html);
     let elements = $(html);
-    let results = [];
 
     elements.each((i, el)=>{
-      this.parseOneNode(el, results);
+      this.parseOneNode(el);
     });
     elements = elements.toArray().filter(el=>el);
 
     // console.log('elements', elements)
-    console.log('listenerNodes', results)
 
     componentClass.template = elements;
   }
@@ -123,7 +160,7 @@ class Renderer {
     const componentIndex = Component.components.templateNames.indexOf(tag.nodeName.toLowerCase());
 
     if (~componentIndex){
-      console.log('found tag', tag.nodeName.toLowerCase());
+      // console.log('found tag', tag.nodeName.toLowerCase());
       const newComponent = new Component.components.classes[componentIndex](tag);
       return;
     }
