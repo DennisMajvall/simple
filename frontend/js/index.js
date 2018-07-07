@@ -3,5 +3,7 @@
   // Component.registerComponent(HelloComponent);
   // Component.registerComponent(WorldComponent);
 
-  new BodyComponent();
+  // new BodyComponent();
+
+  renderer.createComponentsInDOM();
 })();

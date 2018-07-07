@@ -1,7 +1,5 @@
 class Component {
-  constructor(){
-
-
+  constructor(elementToReplace){
     const proxy = new Proxy(this, Component.proxyHandler());
 
     this.uniqueId = Component.uniqueId++;
@@ -11,10 +9,27 @@ class Component {
 
     proxy.initTimeout = setTimeout(async ()=>{
       await proxy.waitForFunction('init');
-      await proxy.waitForFunction('load');
-    }, 0);
+      this.replaceElementInDOM(elementToReplace);
+      await proxy.waitForFunction('load'); // await needed for the last one?
+    });
 
     return proxy;
+  }
+
+  replaceElementInDOM(){
+    let classNode = this.constructor.template;
+    var str = '<a href="http://www.com">item to replace</a>'; //it can be anything
+    var Obj = document.getElementById('TargetObject'); //any element to be fully replaced
+    if(Obj.outerHTML) { //if outerHTML is supported
+        Obj.outerHTML=str; ///it's simple replacement of whole element with contents of str var
+    }
+    else { //if outerHTML is not supported, there is a weird but crossbrowsered trick
+        var tmpObj=document.createElement("div");
+        tmpObj.innerHTML='<!--THIS DATA SHOULD BE REPLACED-->';
+        ObjParent=Obj.parentNode; //Okey, element should be parented
+        ObjParent.replaceChild(tmpObj,Obj); //here we placing our temporary data instead of our target, so we can find it then and replace it into whatever we want to replace to
+        ObjParent.innerHTML=ObjParent.innerHTML.replace('<div><!--THIS DATA SHOULD BE REPLACED--></div>',str);
+    }
   }
 
   async init(){}
@@ -56,14 +71,14 @@ class Component {
   }}
 
   static registerComponent(aClass){
-    // TODO? allow functions instead of only classes ES6
+    // TODO? Also allow js-objects instead of only ES6 classes
     if (Component.components.classNames.includes(aClass.name)){ return false; }
 
     const templateName = aClass.name
     .replace(/Component$/, '')
     .toSnakeCase();
 
-    aClass.template = renderer.convertTemplateToDOM(aClass.template);
+    renderer.convertTemplateToDOM(aClass);
 
     Component.components.templateNames.push(templateName);
     Component.components.classes.push(aClass);
@@ -79,12 +94,6 @@ class Component {
     const p = this[name]();
     p instanceof Promise && await p;
     return p;
-  }
-
-  async waitForFunctions(...names){
-    for(let name of names){
-      await this.waitForFunction(name);
-    }
   }
 }
 Component.uniqueId = 0;

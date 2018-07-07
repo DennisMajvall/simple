@@ -1,76 +1,4 @@
 class Renderer {
-  render(component){
-    return;
-    let that = this;
-    let tags = component.constructor.template;
-    // console.log('render tags', tags);
-    if (tags.length === undefined) { tags = [tags]; }
-
-    const outerText = component.htmlNode.outerText.trim();
-    outerText && (component.renderOuterText = outerText);
-    component.htmlNode.innerHTML = '';
-
-    component.htmlNode.dataset['componentId'] = component.uniqueId;
-
-    let childComponents = [];
-
-    if (tags.length > 1) {
-      const docFrag = document.createDocumentFragment();
-      for (let tag of tags){
-        createNode(tag, docFrag);
-      }
-      component.htmlNode.appendChild(docFrag);
-    } else if (tags.length == 1) {
-      createNode(tags[0], component.htmlNode);
-    }
-
-    function createNode(tag, parent){
-      if (typeof tag == 'string') {
-        that.appendTextNodes(tag, parent, component);
-        return;
-      }
-
-      const el = document.createElement(tag.tagName);
-
-      for (let name in tag.attributes) {
-        const attrVal = tag.attributes[name].trim();
-        that.setUpAttributeListeners(el, component, attrVal, name);
-      }
-
-      for (let tChild of tag.children) {
-        createNode(tChild, el);
-      }
-
-      that.createComponentIfNeeded(tag, el, component, childComponents);
-
-      parent.appendChild(el);
-    }
-
-    for (let childComponent of childComponents) {
-      // console.log('rendering child', childComponent);
-      renderer.render(childComponent)
-    }
-  }
-
-  getVariablesFromText(fullText){
-    const thisRegexp = /this(\.[a-zA-Z]{1}[a-zA-Z_\d]*)+/g;
-    let foundMatch = thisRegexp.exec(fullText);
-
-    const textNodes = [];
-    let i = 0;
-
-    while (foundMatch != null) {
-      let textPreMatch = fullText.substring(i, foundMatch.index);
-      textNodes.push(textPreMatch);
-      i = thisRegexp.lastIndex;
-
-      textNodes.push(foundMatch[0]);
-      foundMatch = thisRegexp.exec(fullText);
-    }
-
-    textNodes.push(fullText.substr(i));
-    return textNodes;
-  }
 
   appendTextNodes(fullText, parent, component){
     const textNodes = this.getVariablesFromText(fullText);
@@ -107,11 +35,6 @@ class Renderer {
     }
   }
 
-  createComponentIfNeeded(tag, el, component, childComponents){
-    const cIndex = Component.components.templateNames.indexOf(tag.tagName);
-    ~cIndex && this.createComponent(tag, el, component, cIndex, childComponents);
-  }
-
   createComponent(tag, el, component, cIndex, childComponents){
     const newComponent = new Component.components.classes[cIndex]();
     const parentNr = component.htmlNode.dataset['componentId'];
@@ -135,7 +58,7 @@ class Renderer {
         let i = 0;
 
         while (foundMatch != null) {
-          console.log('foundMatch', foundMatch);
+          // console.log('foundMatch', foundMatch);
           i = thisRegexp.lastIndex;
           foundMatch[1] && textNodes.push(foundMatch[1]);
           foundMatch[2] && textNodes.push(foundMatch[2]);
@@ -144,24 +67,18 @@ class Renderer {
         const after = i > 0 ? v.substring(i, v.length) : '';
         if (after) { textNodes.push(after); }
 
-        console.log('done', textNodes);
+        console.log('split textNodes', textNodes);
         const tnLen = textNodes.length;
         if (tnLen > 1) {
           el.nodeValue = textNodes[tnLen-1];
           for (let i = 0; i < tnLen - 1; ++i) {
-            el.parentNode.insertBefore(document.createTextNode(textNodes[i]), el);
+            let textNode = document.createTextNode(textNodes[i]);
+            el.parentNode.insertBefore(textNode, el);
+            if (textNode.nodeValue.includes('{{')) {
+              result.push(textNode);
+            }
           }
         }
-
-        console.log(tnLen, 'parent', el.parentNode);
-
-        // const startsAt = v.indexOf('{{');
-        // const endsAt = v.indexOf('}}');
-
-        // if (startsAt > 0) {
-        // }
-
-        result.push(el);
       }
       return;
     }
@@ -182,8 +99,8 @@ class Renderer {
     return result;
   }
 
-  convertTemplateToDOM(templateFunc){
-    let html = templateFunc.toString();
+  convertTemplateToDOM(componentClass){
+    let html = componentClass.template.toString();
     html = html.substring(11, html.length - 1).replace(/\$\{(.*?)\}/g, '{{$1}}');
     html = (new Function(html))();
 
@@ -196,12 +113,33 @@ class Renderer {
     });
     elements = elements.toArray().filter(el=>el);
 
-    console.log('elements', elements)
-    console.log('results', results)
+    // console.log('elements', elements)
+    console.log('listenerNodes', results)
 
-    // !isFirst && console.log('elements', elements.toArray());
-    // if (elements.length == 1) { elements = elements[0]; }
-    return elements;
+    componentClass.template = elements;
   }
+
+  createComponentsInDOM(tag = document.documentElement){
+    const componentIndex = Component.components.templateNames.indexOf(tag.nodeName.toLowerCase());
+
+    if (~componentIndex){
+      console.log('found tag', tag.nodeName.toLowerCase());
+      const newComponent = new Component.components.classes[componentIndex](tag);
+      return;
+    }
+
+    // console.log('did not find the tag', tag.nodeName.toLowerCase());
+    for(let i = 0; i < tag.children.length; ++i){
+      this.createComponentsInDOM(tag.children[i]);
+    }
+  }
+
+  /*
+    const outerText = component.htmlNode.outerText.trim();
+    outerText && (component.renderOuterText = outerText);
+    component.htmlNode.innerHTML = '';
+
+    component.htmlNode.dataset['componentId'] = component.uniqueId;
+  */
 }
 const renderer = new Renderer();
