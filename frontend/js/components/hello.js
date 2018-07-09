@@ -1,6 +1,7 @@
 class HelloComponent extends Component {
 
   async init(){
+    this.show = false;
     console.log('hello init');
   }
 
@@ -11,7 +12,7 @@ class HelloComponent extends Component {
   static template(){
     return `
       <h1>hello</h1>
-      <world/>
+      <world if="${this.show}"></world>
     `
   }
 }
