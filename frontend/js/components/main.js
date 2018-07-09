@@ -1,7 +1,7 @@
-class BodyComponent extends Component {
+class MainComponent extends Component {
 
   async init(){
-    console.log('body init');
+    console.log('main init');
     this.lol = 'one';
     this.lola = { a: { b: 'a_one_a' } };
 
@@ -17,7 +17,7 @@ class BodyComponent extends Component {
   }
 
   async load(){
-    console.log('body load');
+    console.log('main load');
   }
 
   static template(){

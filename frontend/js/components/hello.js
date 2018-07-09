@@ -1,6 +1,11 @@
 class HelloComponent extends Component {
 
   async init(){
+    console.log('hello init');
+  }
+
+  async load(){
+    console.log('hello load');
   }
 
   static template(){

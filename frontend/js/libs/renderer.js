@@ -1,32 +1,38 @@
 class Renderer {
 
-  render(instance, elementToReplace){
-    const nodes = instance.constructor.template;
-    instance.htmlNodes = [];
+  render(instance, tag){
+    const templateNode = instance.constructor.template;
+    instance.htmlNode = templateNode.cloneNode(true);
 
-    const fixNodes = (i) => {
-      instance.htmlNodes[i] = nodes[i].cloneNode(true);
-      if (nodes[i].nodeType == Node.ELEMENT_NODE) {
-        instance.htmlNodes[i].dataset['componentId'] = instance.uniqueId;
-      }
-      this.parseListeners(nodes[i], instance.htmlNodes[i], instance);
-    }
+    this.setPreviousOuterHTML(tag, instance);
+    this.setAttributes(instance.htmlNode, tag, instance);
+    this.parseListeners(instance.htmlNode, templateNode, instance);
+    tag.parentNode.replaceChild(instance.htmlNode, tag)
 
-    for(let i = 0; i < nodes.length; ++i) {
-      fixNodes(i);
-      i == 0
-        ? elementToReplace.parentNode.replaceChild(instance.htmlNodes[i], elementToReplace)
-        : instance.htmlNodes[i-1].parentNode.insertBefore(instance.htmlNodes[i], instance.htmlNodes[i-1].nextSibling); // inserts after
+    for (let i = 0; i < instance.htmlNode.children.length; ++i){
+      this.createComponentsInDOM(instance.htmlNode.children[i], instance);
     }
   }
 
-  parseListeners(src, dst, instance){
+  setAttributes(dst, src, instance){
+    for (let i = 0; i < src.attributes.length; ++i){
+      const attr = src.attributes.item(i);
+      dst.setAttribute(attr.name, attr.value);
+    }
+    dst.setAttribute('comp-id', instance.uniqueId);
+  }
 
+  setPreviousOuterHTML(src, instance){
+    const outerText = src.outerText.trim();
+    outerText && (instance.previousOuterHTML = outerText);
+  }
+
+  parseListeners(dst, src, instance){
     if (src.isListener) {
       if (src.nodeType == Node.TEXT_NODE) {
         const varName = src.nodeValue.slice(src.nodeValue.indexOf('this.') + 5);
         dst.nodeValue = instance[varName];
-        if (!instance.disableWarnings && !instance[varName]) {
+        if (!instance.disableWarnings && instance[varName] === undefined) {
           dst.nodeValue = `[undefined: ${varName}]`;
           console.warn(`Rendered an undefined variable "${varName}" in a textNode. element:`, dst.parentNode.cloneNode(true));
         }
@@ -47,7 +53,7 @@ class Renderer {
               const varName = foundMatch[2];
               if (varName) {
                 variableNames.push(varName);
-                if (varName && !instance[varName] && !instance.disableWarnings) {
+                if (varName && instance[varName] === undefined && !instance.disableWarnings) {
                   console.warn(`Rendered an undefined variable "${varName}" in the attribute "${a.name}" of element:`, dst.cloneNode(true));
                 }
               }
@@ -68,7 +74,7 @@ class Renderer {
     }
 
     for(let i = 0; i < src.childNodes.length; ++i) {
-      this.parseListeners(src.childNodes[i], dst.childNodes[i], instance);
+      this.parseListeners(dst.childNodes[i], src.childNodes[i], instance);
     }
   }
 
@@ -77,10 +83,10 @@ class Renderer {
       return;
     }
 
-    el.nodeValue && (el.nodeValue = el.nodeValue.trim());
-    const v = el.nodeValue;
-
     if (el.nodeType == Node.TEXT_NODE){
+      el.nodeValue && (el.nodeValue = el.nodeValue.replace(/\s{2,}/gm, ' ').trim());
+      const v = el.nodeValue;
+
       if (!v) {
         el.remove();
       } else if (v.includes('{{') && v.includes('}}')) {
@@ -99,25 +105,18 @@ class Renderer {
         const after = i > 0 ? v.substring(i, v.length) : '';
         if (after) { textNodes.push(after); }
 
-        // console.log('split textNodes', textNodes);
-        const tnLen = textNodes.length;
-        if (tnLen > 1) {
-          el.nodeValue = textNodes[tnLen-1];
-          if (el.nodeValue.startsWith('{{') && el.nodeValue.endsWith('}}')) {
-            el.nodeValue = el.nodeValue.slice(2, el.nodeValue.length-2)
-            el.isListener = true;
+        // console.log('split textNodes', textNodes);while (box.firstChild) {
+          textNodes[-1] = el;
+          for (let i = 0; i < textNodes.length; ++i) {
+          textNodes[i] = document.createTextNode(textNodes[i]);
+          const text = textNodes[i].nodeValue;
+          if (text.startsWith('{{') && text.endsWith('}}')) {
+            textNodes[i].nodeValue = text.slice(2, text.length-2)
+            textNodes[i].isListener = true;
           }
-
-          for (let i = 0; i < tnLen - 1; ++i) {
-            let textNode = document.createTextNode(textNodes[i]);
-            el.parentNode.insertBefore(textNode, el);
-            const text = textNode.nodeValue;
-            if (text.startsWith('{{') && text.endsWith('}}')) {
-              textNode.nodeValue = text.slice(2, text.length-2)
-              textNode.isListener = true;
-            }
-          }
+          el.parentNode.insertBefore(textNodes[i], textNodes[i-1].nextSibling);
         }
+        el.remove();
       }
       return;
     }
@@ -142,41 +141,35 @@ class Renderer {
     let html = componentClass.template.toString();
     html = html.substring(11, html.length - 1).replace(/\$\{(.*?)\}/g, '{{$1}}');
     html = (new Function(html))();
+    const tagName = Component.components.templateNames[Component.components.classes.indexOf(componentClass)];
 
+    let container = $(`<${tagName}>${html}</${tagName}>`)[0];
     // console.log('html', html);
-    let elements = $(html);
+    // console.log('container', container);
 
-    elements.each((i, el)=>{
-      this.parseOneNode(el);
-    });
-    elements = elements.toArray().filter(el=>el);
+    this.parseOneNode(container);
 
-    // console.log('elements', elements)
-
-    componentClass.template = elements;
+    componentClass.template = container;
   }
 
-  createComponentsInDOM(tag = document.documentElement){
+  async createComponentsInDOM(tag = document.documentElement, parentComponent = null){
     const componentIndex = Component.components.templateNames.indexOf(tag.nodeName.toLowerCase());
 
     if (~componentIndex){
       // console.log('found tag', tag.nodeName.toLowerCase());
-      const newComponent = new Component.components.classes[componentIndex](tag);
+      const newComponent = new Component.components.classes[componentIndex](tag, parentComponent);
+      if (parentComponent) { parentComponent.childComponents.push(newComponent); }
+
+      await newComponent._init();
+      newComponent._load();
+
       return;
     }
 
     // console.log('did not find the tag', tag.nodeName.toLowerCase());
     for(let i = 0; i < tag.children.length; ++i){
-      this.createComponentsInDOM(tag.children[i]);
+      this.createComponentsInDOM(tag.children[i], parentComponent);
     }
   }
-
-  /*
-    const outerText = component.htmlNode.outerText.trim();
-    outerText && (component.renderOuterText = outerText);
-    component.htmlNode.innerHTML = '';
-
-    component.htmlNode.dataset['componentId'] = component.uniqueId;
-  */
 }
 const renderer = new Renderer();
