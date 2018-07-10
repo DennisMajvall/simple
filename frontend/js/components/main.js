@@ -22,7 +22,7 @@ class MainComponent extends Component {
 
   static template(){
     return `
-      <div id="hello1 ${this.lol} hello2 ${this.monkey}">
+      <div class="hello1 ${this.lol} hello2 ${this.monkey}">
         hello1 ${this.lol} goodbye ${this.monkey}
       </div>
 
@@ -30,24 +30,19 @@ class MainComponent extends Component {
         <input value="${this.lol}" style="display:block;">
       </div>
 
-      <div id="hello2 ${this.lol} hello3 ${this.monkey}">
+      <div class="hello2 ${this.lol} hello3 ${this.monkey}">
         hello2 ${this.lol} goodbye ${this.monkey}
       </div>
 
-aaaaaaaaaaaaaaa this is so bugged
       ${this.lol}
       ${this.lol}
       ${this.lol}
       ${this.lol}
-      ${this.lol}
-      ${this.lol}
-      ${this.lol}
-bbbbbbbbbbb this is so bugged
       <div id="yo">
         2abc ${this.lol} def ghi ${this.lol} this.5okay this..ok! jkl
         <input value="hejsan ${this.lol}" style="display:block;">
         <input value="${this.lol}" style="display:block;">
-        <hello> yeah next is bugged</hello>
+        <hello> some text</hello>
         <hello> ${this.lol}  </hello>
       </div>
     `;
