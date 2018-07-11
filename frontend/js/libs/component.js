@@ -1,16 +1,16 @@
 class Component {
   constructor(elementToReplace, parentComponent = null){
-    const proxy = new Proxy(this, Component.proxyHandler());
-
+    this.uniqueId = Component.uniqueId++;
     this._elementToReplace = elementToReplace;
+
     this.parentComponent = parentComponent;
     this.childComponents = [];
 
-    this.uniqueId = Component.uniqueId++;
+    this.renderListeners = {};
+
+    // Create the proxy after all values have been set.
+    const proxy = new Proxy(this, Component.proxyHandler());
     Component.mem[this.uniqueId] = proxy;
-
-    proxy.renderListeners = {};
-
     return proxy;
   }
 
