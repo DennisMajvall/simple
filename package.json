@@ -4,7 +4,6 @@
   "description": "a small framework",
   "main": "./backend/index.js",
   "dependencies": {
-    "hyperapp": "^1.2.5",
     "express": "^4.16.3"
   },
   "devDependencies": {},
