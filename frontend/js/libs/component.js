@@ -7,6 +7,7 @@ class Component {
     this.childComponents = [];
 
     this.renderListeners = {};
+    this.ifListeners = {};
 
     // Create the proxy after all values have been set.
     const proxy = new Proxy(this, Component.proxyHandler());
@@ -41,10 +42,17 @@ class Component {
 
       const success = Reflect.set(target, propertyKey, value, reciever);
 
-      const a = target.renderListeners;
-      if (a.hasOwnProperty(propertyKey)) {
-        for (let update of a[propertyKey]) {
-          update();
+      const rl = target.renderListeners;
+      if (rl.hasOwnProperty(propertyKey)) {
+        for (let updateObj of rl[propertyKey]) {
+          updateObj.f(updateObj.dst);
+        }
+      }
+
+      const il = target.ifListeners;
+      if (il.hasOwnProperty(propertyKey)) {
+        for (let updateObj of il[propertyKey]) {
+          updateObj.f(updateObj.dst);
         }
       }
 
@@ -99,6 +107,27 @@ class Component {
         await asleep(0);
         if (performance.now() - waitForLoad > Component.MAX_INIT_LOAD_MS) {
           break;
+        }
+      }
+    }
+  }
+
+  replaceChildNodeListeners(newDestination, oldDestination){
+    const rl = this.renderListeners;
+    for (let vn in rl){
+      for (let obj in rl[vn]){
+        const theObj = rl[vn][obj]
+        if (theObj.dst == oldDestination) {
+          theObj.dst = newDestination;
+        }
+      }
+    }
+    const il = this.ifListeners;
+    for (let vn in il){
+      for (let obj in il[vn]){
+        const theObj = il[vn][obj]
+        if (theObj.dst == oldDestination) {
+          theObj.dst = newDestination;
         }
       }
     }

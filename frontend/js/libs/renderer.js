@@ -3,6 +3,7 @@ class Renderer {
   render(instance, tag){
     const templateNode = instance.constructor.template;
     instance.htmlNode = templateNode.cloneNode(true);
+    instance.parentComponent && instance.parentComponent.replaceChildNodeListeners(instance.htmlNode, tag);
 
     this.setPreviousOuterHTML(tag, instance);
     this.setAttributes(instance.htmlNode, tag, instance);
@@ -27,49 +28,83 @@ class Renderer {
     outerText && (instance.previousOuterHTML = outerText);
   }
 
-  parseListeners(dst, src, instance){
-    if (src.isListener) {
-      if (src.nodeType == Node.TEXT_NODE) {
-        const varName = src.nodeValue.slice(src.nodeValue.indexOf('this.') + 5);
-        dst.nodeValue = instance[varName];
-        if (!instance.disableWarnings && instance[varName] === undefined) {
-          dst.nodeValue = `[undefined: ${varName}]`;
-          console.warn(`Rendered an undefined variable "${varName}" in a textNode. element:`, dst.parentNode.cloneNode(true));
+  getThisVariablesInAttributes(v, attr, instance, dst){
+    const thisRegexp = /(this.)([a-zA-Z0-9]*)/g;
+    let foundMatch = thisRegexp.exec(v);
+    let variableNames = [];
+    while (foundMatch != null) {
+      const varName = foundMatch[2];
+      if (varName) {
+        variableNames.push(varName);
+        if (varName && instance[varName] === undefined && !instance.disableWarnings) {
+          console.warn(`Rendered an undefined variable "${varName}" in the attribute "${attr.name}" of element:`, dst.cloneNode(true));
         }
-        instance.renderListeners[varName] = instance.renderListeners[varName] || [];
-        instance.renderListeners[varName].push(()=>{ dst.nodeValue = instance[varName] });
-      } else if (src.nodeType == Node.ELEMENT_NODE) {
-        const aLen = src.attributes.length;
-        for (let i = 0; i < aLen; ++i) {
-          const a = src.attributes[i];
+      }
+      foundMatch = thisRegexp.exec(v);
+    }
+    return variableNames;
+  }
 
-          if (a.isListener) {
-            const v = "`" + a.nodeValue.replace(/\{\{/g, '${').replace(/\}\}/g, '}') + "`";
+  parseIsCondition(dst, src, instance){
+    const a = src.attributes.getNamedItem('if');
+    const v = "`${" + a.nodeValue.replace(/\{\{/g, '').replace(/\}\}/g, '') + "}`";
+    const variableNames = this.getThisVariablesInAttributes(v, a, instance, dst);
 
-            const thisRegexp = /(this.)([a-zA-Z0-9]*)/g;
-            let foundMatch = thisRegexp.exec(v);
-            let variableNames = [];
-            while (foundMatch != null) {
-              const varName = foundMatch[2];
-              if (varName) {
-                variableNames.push(varName);
-                if (varName && instance[varName] === undefined && !instance.disableWarnings) {
-                  console.warn(`Rendered an undefined variable "${varName}" in the attribute "${a.name}" of element:`, dst.cloneNode(true));
-                }
-              }
-              foundMatch = thisRegexp.exec(v);
-            }
+    function setAttr(){
+      const result = eval(v);
+      dst.setAttribute(a.name, result);
+      for(let vn of variableNames) {
+        this.ifListeners[vn] = this.ifListeners[vn] || [];
+        this.ifListeners[vn].push({ dst, f: (dst)=>{ dst.setAttribute(a.name, eval(v)); }          });
+      }
+    }
+    setAttr.bind(instance)();
+  }
 
-            changeThisScope.bind(instance)();
-            function changeThisScope(){
-              dst.setAttribute(a.name, eval(v));
-              for(let vn of variableNames) {
-                this.renderListeners[vn] = this.renderListeners[vn] || [];
-                this.renderListeners[vn].push(()=>{ dst.setAttribute(a.name, eval(v)); });
-              }
-            }
+  parseTextListener(dst, src, instance){
+    const varName = src.nodeValue.slice(src.nodeValue.indexOf('this.') + 5);
+    dst.nodeValue = instance[varName];
+    if (!instance.disableWarnings && instance[varName] === undefined) {
+      dst.nodeValue = `[undefined: ${varName}]`;
+      console.warn(`Rendered an undefined variable "${varName}" in a textNode. element:`, dst.parentNode.cloneNode(true));
+    }
+    instance.renderListeners[varName] = instance.renderListeners[varName] || [];
+    instance.renderListeners[varName].push(()=>{ dst.nodeValue = instance[varName] });
+  }
+
+  parseAttributeListener(dst, src, instance){
+    const aLen = src.attributes.length;
+    for (let i = 0; i < aLen; ++i) {
+      const a = src.attributes[i];
+
+      if (a.isListener) {
+        const v = "`" + a.nodeValue.replace(/\{\{/g, '${').replace(/\}\}/g, '}') + "`";
+        const variableNames = this.getThisVariablesInAttributes(v, a, instance, dst);
+
+        changeThisScope.bind(instance)();
+        function changeThisScope(){
+          dst.setAttribute(a.name, eval(v));
+          for(let vn of variableNames) {
+            this.renderListeners[vn] = this.renderListeners[vn] || [];
+            this.renderListeners[vn].push({ dst, f: (dst)=>{ dst.setAttribute(a.name, eval(v)); } });
           }
         }
+      }
+    }
+  }
+
+  parseListeners(dst, src, instance){
+    if (src.isCondition) {
+      dst.isCondition = true;
+      this.parseIsCondition(dst, src, instance);
+    }
+
+    if (src.isListener) {
+      dst.isListener = true;
+      if (src.nodeType == Node.TEXT_NODE) {
+        this.parseTextListener(dst, src, instance);
+      } else if (src.nodeType == Node.ELEMENT_NODE) {
+        this.parseAttributeListener(dst, src, instance);
       }
     }
 
@@ -123,11 +158,15 @@ class Renderer {
 
     const aLen = el.attributes.length;
     for (let i = 0; i < aLen; ++i) {
-      const a = el.attributes[i];
-      const text = a.nodeValue;
+      const attr = el.attributes[i];
+      const text = attr.nodeValue;
       if (text.includes('{{') && text.includes('}}')) {
-        el.attributes[i].isListener = true;
+        attr.isListener = true;
         el.isListener = true;
+      }
+      if (attr.name == 'if') {
+        el.isCondition = true;
+        attr.isListener = false;
       }
     }
 
