@@ -58,12 +58,12 @@ class Renderer {
     const a = src.attributes.getNamedItem('if');
     const v = "`${" + a.nodeValue.replace(/\{\{/g, '').replace(/\}\}/g, '') + "}`";
     const variableNames = this.getThisVariablesInAttributes(v, a, instance, dst);
+    dst.removeAttribute('if')
 
     function setAttr(){
       let dstNode = dst;
       const doIt = (firstTime = false)=>{
         const result = eval(v) == 'true' ? true : false;
-        dstNode.setAttribute('if', result);
         if (!result) {
           dstNode.detach();
           renderer.toRemove.push(dstNode);
