@@ -1,16 +1,12 @@
 class HelloComponent extends Component {
 
   async init(){
-    this.show = true;
+    this.show = false;
     console.log('hello init');
 
     setTimeout(()=> {
-      this.show = false;
-    }, 1000);
-
-    setTimeout(()=> {
       this.show = true;
-    }, 2000);
+    }, 1000);
   }
 
   async load(){
@@ -21,9 +17,7 @@ class HelloComponent extends Component {
     return `
       <h1 class="one" if="this.show">hello</h1>
       <world class="two"></world>
-      <h1 class="three">hello</h1>
-      <world class="four" if="this.show"></world>
-      <world class="five" if="this.show"></world>
+      <world class="three" if="this.show"></world>
     `
   }
 }
