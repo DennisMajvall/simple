@@ -45,15 +45,16 @@ class Component {
       const rl = target.renderListeners;
       if (rl.hasOwnProperty(propertyKey)) {
         for (let updateObj of rl[propertyKey]) {
-          updateObj.f(updateObj.dst);
+          updateObj.f();
         }
       }
 
       const il = target.ifListeners;
       if (il.hasOwnProperty(propertyKey)) {
         for (let updateObj of il[propertyKey]) {
-          updateObj.f(updateObj.dst);
+          updateObj.f();
         }
+        renderer.removeFalseNodes();
       }
 
       return success;
@@ -116,19 +117,13 @@ class Component {
     const rl = this.renderListeners;
     for (let vn in rl){
       for (let obj in rl[vn]){
-        const theObj = rl[vn][obj]
-        if (theObj.dst == oldDestination) {
-          theObj.dst = newDestination;
-        }
+        rl[vn][obj].setDstNode(newDestination, oldDestination);
       }
     }
     const il = this.ifListeners;
     for (let vn in il){
       for (let obj in il[vn]){
-        const theObj = il[vn][obj]
-        if (theObj.dst == oldDestination) {
-          theObj.dst = newDestination;
-        }
+        il[vn][obj].setDstNode(newDestination, oldDestination);
       }
     }
   }

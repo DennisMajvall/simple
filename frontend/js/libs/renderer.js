@@ -1,5 +1,9 @@
 class Renderer {
 
+  constructor(){
+    this.toRemove = [];
+  }
+
   render(instance, tag){
     const templateNode = instance.constructor.template;
     instance.htmlNode = templateNode.cloneNode(true);
@@ -45,17 +49,37 @@ class Renderer {
     return variableNames;
   }
 
+  removeFalseNodes(){
+    this.toRemove.forEach(v=>v.remove());
+    this.toRemove = [];
+  }
+
   parseIsCondition(dst, src, instance){
     const a = src.attributes.getNamedItem('if');
     const v = "`${" + a.nodeValue.replace(/\{\{/g, '').replace(/\}\}/g, '') + "}`";
     const variableNames = this.getThisVariablesInAttributes(v, a, instance, dst);
 
     function setAttr(){
-      const result = eval(v);
-      dst.setAttribute(a.name, result);
+      let dstNode = dst;
+      const doIt = (firstTime = false)=>{
+        const result = eval(v) == 'true' ? true : false;
+        dstNode.setAttribute('if', result);
+        if (!result) {
+          dstNode.detach();
+          renderer.toRemove.push(dstNode);
+        } else if (!dstNode.isConnected && !firstTime) {
+          dstNode.reattach();
+        }
+      };
+
+      doIt(true);
+
       for(let vn of variableNames) {
         this.ifListeners[vn] = this.ifListeners[vn] || [];
-        this.ifListeners[vn].push({ dst, f: (dst)=>{ dst.setAttribute(a.name, eval(v)); }          });
+        this.ifListeners[vn].push({
+          setDstNode: (newDst, oldDst)=>{ dstNode === oldDst && (dstNode = newDst); },
+          f: doIt
+        });
       }
     }
     setAttr.bind(instance)();
@@ -83,10 +107,19 @@ class Renderer {
 
         changeThisScope.bind(instance)();
         function changeThisScope(){
+          let dstNode = dst;
+          const doIt = ()=>{
+            const result = eval(v);
+            dstNode.setAttribute(a.name, result);
+          };
+          doIt();
           dst.setAttribute(a.name, eval(v));
           for(let vn of variableNames) {
             this.renderListeners[vn] = this.renderListeners[vn] || [];
-            this.renderListeners[vn].push({ dst, f: (dst)=>{ dst.setAttribute(a.name, eval(v)); } });
+            this.renderListeners[vn].push({
+              setDstNode: (newDst, oldDst)=>{ dstNode === oldDst && (dstNode = newDst); },
+              f: doIt
+            });
           }
         }
       }

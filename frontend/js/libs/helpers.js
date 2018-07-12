@@ -20,3 +20,57 @@ String.prototype.toSnakeCase = function(){
     })
   ;
 }
+
+Node.prototype.index = function(){
+  let index = 0;
+  let node = this;
+  while ((node = node.previousSibling)) { index++; }
+  return index;
+}
+
+HTMLElement._uniqueId = 0;
+
+HTMLElement.prototype.detach = function(){
+  let index = this.index();
+
+  let prev = this.previousSibling;
+  let next = this.nextSibling;
+  let parent = this.parentElement;
+
+  parent && (parent = parent.getAttribute('id') || parent.setAttribute('id', 'gen_' + HTMLElement._uniqueId) || 'gen_' + HTMLElement._uniqueId++);
+  prev && (prev = prev.getAttribute('id') || prev.setAttribute('id', 'gen_' + HTMLElement._uniqueId) || 'gen_' + HTMLElement._uniqueId++);
+  next && (next = next.getAttribute('id') || next.setAttribute('id', 'gen_' + HTMLElement._uniqueId) || 'gen_' + HTMLElement._uniqueId++);
+
+  this.reattachData = { index, prev, next, parent }
+
+  // When removing several elements in the same frame
+  // they all have to calculate their index() before getting removed.
+  // If the current platform does not use the framework: simple, we just remove them
+  if (!renderer || !renderer.removeFalseNodes) { this.remove(); }
+}
+
+HTMLElement.prototype.reattach = function(){
+  const d = this.reattachData;
+
+  d.parent && (d.parent = document.getElementById(d.parent));
+  if (!d.parent || !d.parent.isConnected) { return; }
+
+  d.prev && (d.prev = document.getElementById(d.prev));
+  d.next && (d.next = document.getElementById(d.next));
+
+  if (d.next && d.next.isConnected) {
+    d.parent.insertBefore(this, d.next);
+
+  } else if (d.prev && d.prev.isConnected) {
+    d.parent.insertBefore(this, d.prev.nextSibling);
+  } else {
+
+    console.log(this.getAttribute('id'), 'index', d.index);
+
+    if (d.index == 0 || d.parent.childNodes.length <= d.index) {
+      d.parent.appendChild(this);
+    } else {
+      d.parent.insertBefore(this, d.parent.childNodes[d.index].nextSibling || null);
+    }
+  }
+}
