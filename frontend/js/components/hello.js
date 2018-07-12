@@ -5,7 +5,7 @@ class HelloComponent extends Component {
     console.log('hello init');
 
     setTimeout(()=> {
-      this.show = true;
+      this.show = !this.show;
     }, 1000);
   }
 

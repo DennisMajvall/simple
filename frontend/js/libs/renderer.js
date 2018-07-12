@@ -12,6 +12,7 @@ class Renderer {
     this.setPreviousOuterHTML(tag, instance);
     this.setAttributes(instance.htmlNode, tag, instance);
     this.parseListeners(instance.htmlNode, templateNode, instance);
+    this.removeFalseNodes();
     tag.parentNode.replaceChild(instance.htmlNode, tag)
 
     for (let i = 0; i < instance.htmlNode.children.length; ++i){
