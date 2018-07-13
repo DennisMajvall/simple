@@ -5,6 +5,7 @@ class Renderer {
   }
 
   render(instance, tag){
+    if (this.preventedInfiniteRecursion(tag)) { return; }
     const templateNode = instance.constructor.template;
     instance.htmlNode = templateNode.cloneNode(true);
     instance.parentComponent && instance.parentComponent.replaceChildNodeListeners(instance.htmlNode, tag);
@@ -18,6 +19,32 @@ class Renderer {
     for (let i = 0; i < instance.htmlNode.children.length; ++i){
       this.createComponentsInDOM(instance.htmlNode.children[i], instance);
     }
+  }
+
+  preventedInfiniteRecursion(tag){
+    const tagNames = [];
+    const tagNamesMap = {};
+    let t = tag;
+    while (t) {
+      const n = t.nodeName.toLowerCase();
+      if (!tagNamesMap[n]) { tagNamesMap[n] = 0; }
+
+      tagNames.push(n);
+      ++tagNamesMap[n];
+
+      t = t.parentNode;
+    }
+    for (let n in tagNamesMap) {
+      if (tagNamesMap[n] > Component.MAX_RECURSION) {
+        console.error('Infinite recursion happened in a component template');
+        console.log('Tags created:', tagNamesMap, 'normalized:', tagNames.reverse());
+
+        // Prevent further spam in the log obfuscating the error.
+        console.log = console.warn = console.error = ()=>{};
+        return true;
+      }
+    }
+    return false
   }
 
   setAttributes(dst, src, instance){

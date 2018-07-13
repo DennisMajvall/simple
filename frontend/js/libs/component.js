@@ -150,6 +150,7 @@ class Component {
     return p;
   }
 }
+Component.MAX_RECURSION = 25;
 Component.MAX_INIT_LOAD_MS = 1000;
 Component.uniqueId = 0;
 Component.mem = {};
