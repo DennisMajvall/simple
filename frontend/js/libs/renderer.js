@@ -87,7 +87,7 @@ class Renderer {
     this.toRemove = [];
   }
 
-  parseIsCondition(dst, src, instance){
+  parseisConditional(dst, src, instance){
     const a = src.attributes.getNamedItem('if');
     const v = "`${" + a.nodeValue.replace(/\{\{/g, '').replace(/\}\}/g, '') + "}`";
     const variableNames = this.getThisVariablesInAttributes(v, a, instance, dst);
@@ -95,7 +95,7 @@ class Renderer {
 
     function setAttr(){
       let dstNode = dst;
-      const doIt = (firstTime = false)=>{
+      const updateIfAttribute = (isNewlyCreated = false)=>{
         const result = eval(v) == 'true' ? true : false;
         if (!result) {
           dstNode.detach();
@@ -113,13 +113,13 @@ class Renderer {
         }
       };
 
-      doIt(true);
+      updateIfAttribute(true);
 
       for(let vn of variableNames) {
         this.ifListeners[vn] = this.ifListeners[vn] || [];
         this.ifListeners[vn].push({
           setDstNode: (newDst, oldDst)=>{ dstNode === oldDst && (dstNode = newDst); },
-          f: doIt
+          f: updateIfAttribute
         });
       }
     }
@@ -149,17 +149,15 @@ class Renderer {
         changeThisScope.bind(instance)();
         function changeThisScope(){
           let dstNode = dst;
-          const doIt = ()=>{
-            const result = eval(v);
-            dstNode.setAttribute(a.name, result);
-          };
-          doIt();
-          dst.setAttribute(a.name, eval(v));
+          const updateAttribute = ()=>{ dstNode.setAttribute(a.name, eval(v)); };
+
+          updateAttribute();
+
           for(let vn of variableNames) {
             this.renderListeners[vn] = this.renderListeners[vn] || [];
             this.renderListeners[vn].push({
               setDstNode: (newDst, oldDst)=>{ dstNode === oldDst && (dstNode = newDst); },
-              f: doIt
+              f: updateAttribute
             });
           }
         }
@@ -168,9 +166,9 @@ class Renderer {
   }
 
   parseListeners(dst, src, instance){
-    if (src.isCondition) {
-      dst.isCondition = true;
-      this.parseIsCondition(dst, src, instance);
+    if (src.isConditional) {
+      dst.isConditional = true;
+      this.parseisConditional(dst, src, instance);
     }
 
     if (src.isListener) {
@@ -239,7 +237,7 @@ class Renderer {
         el.isListener = true;
       }
       if (attr.name == 'if') {
-        el.isCondition = true;
+        el.isConditional = true;
         attr.isListener = false;
       }
     }

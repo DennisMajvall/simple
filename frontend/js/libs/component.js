@@ -116,14 +116,14 @@ class Component {
   replaceChildNodeListeners(newDestination, oldDestination){
     const rl = this.renderListeners;
     for (let vn in rl){
-      for (let obj in rl[vn]){
-        rl[vn][obj].setDstNode(newDestination, oldDestination);
+      for (let obj of rl[vn]){
+        obj.setDstNode && obj.setDstNode(newDestination, oldDestination);
       }
     }
     const il = this.ifListeners;
     for (let vn in il){
-      for (let obj in il[vn]){
-        il[vn][obj].setDstNode(newDestination, oldDestination);
+      for (let obj of il[vn]){
+        obj.setDstNode && obj.setDstNode(newDestination, oldDestination);
       }
     }
   }
