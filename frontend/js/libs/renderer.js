@@ -68,8 +68,16 @@ class Renderer {
         if (!result) {
           dstNode.detach();
           renderer.toRemove.push(dstNode);
-        } else if (!dstNode.isConnected && !firstTime) {
+          if (isNewlyCreated && ~renderer.getComponentIndex(dstNode)) {
+            dstNode.notCreatedYet = true;
+          }
+        } else if (!dstNode.isConnected && !isNewlyCreated) {
+          // components don't get created if isNewlyCreated && !result
           dstNode.reattach();
+          if (dstNode.notCreatedYet) {
+            renderer.createComponentsInDOM(dstNode, this);
+            delete dstNode.notCreatedYet;
+          }
         }
       };
 
@@ -225,8 +233,12 @@ class Renderer {
     componentClass.template = container;
   }
 
+  getComponentIndex(tag){
+    return Component.components.templateNames.indexOf(tag.nodeName.toLowerCase());
+  }
+
   async createComponentsInDOM(tag = document.documentElement, parentComponent = null){
-    const componentIndex = Component.components.templateNames.indexOf(tag.nodeName.toLowerCase());
+    const componentIndex = this.getComponentIndex(tag);
 
     if (~componentIndex){
       // console.log('found tag', tag.nodeName.toLowerCase());
