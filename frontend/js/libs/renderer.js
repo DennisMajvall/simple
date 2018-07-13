@@ -5,6 +5,11 @@ class Renderer {
   }
 
   render(instance, tag){
+    if (!tag.parentNode) {
+      console.error('tried to render an element without a parent present in the DOM');
+      console.log('Error element:', tag, 'of instance', instance);
+      return;
+    }
     if (this.preventedInfiniteRecursion(tag)) { return; }
     const templateNode = instance.constructor.template;
     instance.htmlNode = templateNode.cloneNode(true);
