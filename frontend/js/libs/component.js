@@ -1,17 +1,17 @@
 class Component {
   constructor(elementToReplace, parentComponent = null){
-    this.uniqueId = Component.uniqueId++;
+    this._uniqueId = Component.uniqueId++;
     this._elementToReplace = elementToReplace;
+
+    this._renderListeners = {};
+    this._ifListeners = {};
 
     this.parentComponent = parentComponent;
     this.childComponents = [];
 
-    this.renderListeners = {};
-    this.ifListeners = {};
-
     // Create the proxy after all values have been set.
     const proxy = new Proxy(this, Component.proxyHandler());
-    Component.mem[this.uniqueId] = proxy;
+    Component.mem[this._uniqueId] = proxy;
     return proxy;
   }
 
@@ -42,14 +42,14 @@ class Component {
 
       const success = Reflect.set(target, propertyKey, value, reciever);
 
-      const rl = target.renderListeners;
+      const rl = target._renderListeners;
       if (rl.hasOwnProperty(propertyKey)) {
         for (let updateObj of rl[propertyKey]) {
           updateObj.f();
         }
       }
 
-      const il = target.ifListeners;
+      const il = target._ifListeners;
       if (il.hasOwnProperty(propertyKey)) {
         for (let updateObj of il[propertyKey]) {
           updateObj.f();
@@ -61,6 +61,7 @@ class Component {
     }
   }}
 
+  // _init is called with await
   async _init(){
     this.parentComponent && (this.parentComponent.waitForChild = this.parentComponent.waitForChild || 0);
     this.parentComponent && ++this.parentComponent.waitForChild;
@@ -77,6 +78,7 @@ class Component {
     }
   }
 
+  // _load is not called with await
   async _load(){
     await this.waitForChildrenInit();
     await this.waitForParentLoad();
@@ -99,6 +101,7 @@ class Component {
         break;
       }
     }
+    delete this.waitForChild;
   }
 
   async waitForParentLoad(){
@@ -113,17 +116,17 @@ class Component {
     }
   }
 
-  replaceChildNodeListeners(newDestination, oldDestination){
-    const rl = this.renderListeners;
+  replaceChildNodeListeners(newNode, oldNode){
+    const rl = this._renderListeners;
     for (let vn in rl){
       for (let obj of rl[vn]){
-        obj.setDstNode && obj.setDstNode(newDestination, oldDestination);
+        obj.setCurrentNode && obj.setCurrentNode(newNode, oldNode);
       }
     }
-    const il = this.ifListeners;
+    const il = this._ifListeners;
     for (let vn in il){
       for (let obj of il[vn]){
-        obj.setDstNode && obj.setDstNode(newDestination, oldDestination);
+        obj.setCurrentNode && obj.setCurrentNode(newNode, oldNode);
       }
     }
   }
