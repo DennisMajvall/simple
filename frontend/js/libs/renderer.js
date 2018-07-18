@@ -91,13 +91,17 @@ class Renderer {
   }
 
   parseEventListener(node, instance){
-    let listeners = Array(...node.attributes).filter(o=>o.name.startsWith('on-'));
+    const listeners = Array(...node.attributes).filter(o=>o.name.startsWith('on-'));
     for(let i = 0; i < listeners.length; ++i) {
       const l = listeners[i];
       const eventName = l.name.split('on-')[1];
       const funcName = l.value.replace(/^this\./, '').split('(')[0];
       const funcArgs = ((l.value.match(/\((.*)\)/)||'')[1]||'').split(',').map(s=>s.trim()).filter(s=>s);
-      node.addEventListener(eventName, (e)=>{ instance[funcName].call(instance, ...funcArgs, e) });
+      const func = (e)=>{ instance[funcName].call(instance, ...funcArgs, e) };
+
+      // TODO: remove event listeners on unload
+      if (eventName == 'resize') { node = window;}
+      node.addEventListener(eventName, func);
     }
   }
 
