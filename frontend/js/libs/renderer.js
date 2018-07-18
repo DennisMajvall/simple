@@ -91,6 +91,14 @@ class Renderer {
   }
 
   parseEventListener(node, instance){
+    let listeners = Array(...node.attributes).filter(o=>o.name.startsWith('on-'));
+    for(let i = 0; i < listeners.length; ++i) {
+      const l = listeners[i];
+      const eventName = l.name.split('on-')[1];
+      const funcName = l.value.replace(/^this\./, '').split('(')[0];
+      const funcArgs = ((l.value.match(/\((.*)\)/)||'')[1]||'').split(',').map(s=>s.trim()).filter(s=>s);
+      node.addEventListener(eventName, (e)=>{ instance[funcName].call(instance, ...funcArgs, e) });
+    }
   }
 
   parseConditional(node, instance){
@@ -251,7 +259,7 @@ class Renderer {
     const aLen = el.attributes.length;
     for (let i = 0; i < aLen; ++i) {
       const attr = el.attributes[i];
-      const text = attr.nodeValue;
+      const text = attr.nodeValue = attr.nodeValue.trim();
       if (text.includes('{{') && text.includes('}}')) {
         attr.isListener = true;
         el.isListener = true;
