@@ -15,7 +15,7 @@ String.prototype.toCamelCase = function(){
 String.prototype.toSnakeCase = function(){
   return this[0].toLowerCase() +
     this.slice(1)
-    .replace(/[A-Z]/g, (match)=>{
+    .replace(/[A-Z0-9]/g, (match)=>{
       return '-' + match.toLowerCase();
     })
   ;
@@ -33,8 +33,8 @@ HTMLElement._uniqueId = 0;
 HTMLElement.prototype.detach = function(){
   let index = this.index();
 
-  let prev = this.previousSibling;
-  let next = this.nextSibling;
+  let prev = this.previousSibling && this.previousSibling.nodeType == Node.ELEMENT_NODE ? this.previousSibling : null;
+  let next = this.nextSibling && this.nextSibling.nodeType == Node.ELEMENT_NODE ? this.nextSibling : null;
   let parent = this.parentElement;
 
   parent && (parent = parent.getAttribute('id') || parent.setAttribute('id', 'gen_' + HTMLElement._uniqueId) || 'gen_' + HTMLElement._uniqueId++);
@@ -60,15 +60,13 @@ HTMLElement.prototype.reattach = function(){
 
   if (d.next && d.next.isConnected) {
     d.parent.insertBefore(this, d.next);
-
   } else if (d.prev && d.prev.isConnected) {
     d.parent.insertBefore(this, d.prev.nextSibling);
   } else {
-
-    console.log(this.getAttribute('id'), 'index', d.index);
-
-    if (d.index == 0 || d.parent.childNodes.length <= d.index) {
+    if (d.index >= d.parent.childNodes.length) {
       d.parent.appendChild(this);
+    } else if (d.index == 0){
+      d.parent.insertBefore(this, d.parent.firstChild);
     } else {
       d.parent.insertBefore(this, d.parent.childNodes[d.index].nextSibling || null);
     }
